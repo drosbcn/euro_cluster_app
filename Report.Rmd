@@ -1,0 +1,160 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+Ever since the inception of the Euro, debates have raged about its design and membership. This debate has become even more prominent since the start of the financial crisis, which led to a debt crisis in the Eurozone. Critics of the Euro argue that a single monetary policy is unsuitable for its members who still have divergent macroeconomic conditions and cycles, insuficient labour mobility and fiscal integration. While some critics argue in favour of breaking up the monetary union, other have argued in favour of completing it with a stronger fiscal union.
+
+The debate over what makes a "good" monetary union can be traced back to Robert Mundell's 1961 seminal paper on [A Theory of Optimum Currency Areas](http://www.experimentalforschung.econ.uni-muenchen.de/studium/veranstaltungsarchiv/sq2/mundell_aer1961.pdf). Four important factors for a soccessful currency union are:
+
+* Labour mobility within the area.
+* Openness in terms of trade and capital mobility within the area, alongside wage and price flexibility.
+* A risk-sharing system such as automatic fiscal transfers.
+* Similar business cycles.
+
+More recently, the European Union has defined a set of convergence [criteria](http://www.consilium.europa.eu/en/policies/joining-euro-area/convergence-criteria/) that countries have to fulfill if they wish to join the monetary union:
+
+* Price stability.
+* Sound and sustainable public finances.
+* Exchange rate stability.
+* Low long-term interest rates.
+
+### What does this have to do with Data Science?
+
+Firstly the issue of convergence is one in which there are many different variables to consider, and sometimes it may be difficult to know how to visualise and analyse them altogether: in short, this is a reasonably high-dimensional problem, for which dimensionality-reduction techniques could help.
+
+Secondly, we are looking to see whether and which countries would be best grouped together, so it is a clustering problem.
+
+This web app produces two outputs which should help the macroeconomic policy-maker think about economic integration:
+
+* A biplot of European countries according to a range of macroeconomic variables. Additionally, countries are coloured according to clusters formed by hierarchical clustering.
+* A dendrogram which shows the hierarchical clustering of countries.
+
+The user can select the years for which they wish to view the data (between 1995 and 2014), the number of clusters they wish to create (between 1 and 8), and the variables they wish to take into account for the analysis. The data was extracted from the OECD website, standardised and imputed using the mean value for each year. Some EU countries are not included in OECD data.
+
+### What does this tell us about European economic integration?
+
+```{r, echo=FALSE, results='hide',message=FALSE}
+
+macro_pca <- function(year_select, k, variables){
+  
+  setwd("/Users/davidrosenfeld/Documents/app_test/test_app")
+  
+  library(plyr)
+  library(dplyr)
+  library(ggplot2)
+  
+  macro_dataset <- read.csv("macro_dataset.csv")[,-1]
+  
+  dataset <- macro_dataset %>%
+    filter(Year == year_select) %>%
+    select_(.dots = c("LOCATION", variables))
+  
+  dataset[,2:ncol(dataset)] <- scale(dataset[,2:ncol(dataset)])
+  
+  for(i in 2:ncol(dataset)){
+    dataset[,i][is.na(dataset[,i])] = mean(dataset[,i], na.rm = TRUE)
+  }
+  
+  rownames(dataset) <- dataset[,1]
+  
+  dataset_dist <- dist(dataset[,2:ncol(dataset)])
+  dataset_clust <- hclust(dataset_dist, method = "average")
+  dendrogram <- plot(dataset_clust)
+  cut_tree <- as.matrix(cutree(dataset_clust, k = k), ncol = 1)
+  
+  dataset <- cbind(dataset, cut_tree)
+  
+  svd_data <- svd(dataset[, 2:(ncol(dataset) - 1)])
+  rpc <- data.frame(svd_data$u %*% diag(svd_data$d))
+  csc <- data.frame(svd_data$v)
+  
+  pve <- 100*svd_data$d^2/sum(svd_data$d^2)
+  
+  pca_plot <- ggplot(NULL, aes(x = X1, y = X2)) +
+    geom_point(data = rpc, size = 8, alpha = 0.7, aes(col = as.factor(dataset$cut_tree),
+                                                      stroke = 1)) +
+    geom_text(data = rpc, aes(label = dataset[,1])) +
+    geom_segment(data = csc, aes(x = 0, xend = 5* csc[,1], y = 0, yend = 5*csc[,2]),
+                 arrow = arrow(length = unit(0.2,"cm"))) +
+    geom_text(data = csc, aes(x = 5.5* csc[,1], y = 5.5*csc[,2], 
+                              label = colnames(dataset[,2:(ncol(dataset) - 1)]))) +
+    # Make the background blank, get rid of grid lines, but keep axis lines and make the axis text bold
+    theme(panel.background = element_blank(), panel.grid = element_blank(), axis.line = element_line(color = "black"), 
+          axis.ticks = element_line(color = "black"), axis.title = element_text(face = "bold"), 
+          axis.text = element_text(face = "bold"), legend.position = "none") +
+    # Add horizontal and vertical dotted lines at 0
+    geom_hline(yintercept = 0, lty = 2, alpha = 0.5) +
+    geom_vline(xintercept = 0, lty = 2, alpha = 0.5) +
+    ggtitle(paste0("Year: ", year_select, 
+                   " (total variance explained: ", round(pve[1] + pve[2]), "%)")) + 
+    theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+    scale_colour_brewer(type = "qual") +
+    xlab(paste0("First Principal Component (variance explained: ", round(pve[1]), "%)")) +
+    ylab(paste0("Second Principal Component (variance explained: ", round(pve[2]), "%)"))
+  
+  return(list(dendrogram = dendrogram, pca_plot = pca_plot))
+}
+
+```
+
+If we consider the default variables selected in the app and 5 clusters for the year 2014, we notice that most EU countries are in the same cluster, appart from Luxembourg and Ireland. Norway is also in its own cluster, and so is Turkey. Looking at the biplot, it seems strange that Turkey is in a separate cluster considering it is towards the middle of the main "Euro" cluster, but it is worth noting that the biplot only explains about 51% of the variance in the data, so Turkey's distance may be explained by some dimensions which were not captured well by the first two Principal Components.
+
+In our biplot, the first principal component (horizontal axis) seems to capture variance in debt- and unemployment-related variables. It is particularly interesting to note that, unemployment rate and government debt are negatively correlated to government fiscal balance. As expected, Greece, Portugal and Spain have much higher than average unemployment and government debt, and high deficits.
+
+For those interested in international economics, it is worth noting that current account flows (the sume of current account credits and debits as a share of GDP, which measures economic openness) is almost orthogonal to the current account balance. At a time where protectionism seems like an increasingly attractive option by voters and politicians who complain about trade deficits, this biplot suggests they are in fact totally unrelated (as should be expected).
+
+Finally, we should notice that much of the reason for Luxembourg's status as an outlier is due to its openness (as measured by current account flows), which is unsurprising due to its size and its status as an important financial centre. More generally, one possible criticism of this biplot is that it includes some data which are in levels, or which change relatively slowly through time (such as GDP, government debt, average annual wage), as well as some rather more volatile data (such as government fiscal balance, GDP growth and current account flows). The latter are more unstable and cyclical, while the former are more stable and structural. In future analysis, it may be worth separating them out.
+
+```{r, echo=FALSE, message=FALSE}
+
+    macro_pca(year_select = 2014, k = 5, 
+              variables = c("GDP", "gdp_growth", "average_annual_wage", "cpi","current_account_balance",
+               "unemployment_rate",  
+               "govt_fiscal_balance", "govt_debt", 
+               "current_account_flows"))$pca_plot  
+
+```
+
+For this reason, we redo this analysis keeping only some of the more stable variables, also for 2014 and with 5 clusters. This gives us a completely different picture, with Greece and Spain a separate high-debt, high-unemployment cluster, Turkey in its own cluster, and the creation of a "big EU countries" cluster containing Italy, France, the UK and Germany. Luxembourg is also in a separate "high productivity" cluster with Norway.
+
+
+```{r, echo=FALSE, message=FALSE}
+
+    macro_pca(year_select = 2014, k = 5, 
+              variables = c("GDP", "productivity", "cpi",
+               "unemployment_rate",  
+               "govt_debt"))$pca_plot  
+
+```
+
+If we increase the number of clusters to 8, we see that Greece, Spain and Portugal split up in separate clusters (suggesting perhaps they are not as similar as they seem). The other development in this biplot is that the main cluster is split, with the creation of a new cluster formed mainly of Eastern European countries.
+
+```{r, echo=FALSE, message=FALSE}
+
+    macro_pca(year_select = 2014, k = 8, 
+              variables = c("GDP", "productivity", "cpi",
+               "unemployment_rate",  
+               "govt_debt"))$pca_plot  
+
+```
+
+If we turn the clock back to 2004, the year 10 Central and Eastern European countries joined the EU, we can see that while we still have a "big countries" cluster (which this time includes Spain), there seems to be less homogeneity between Western and Eastern EU countries than in 2014: in particular, the productivity/cpi inflation dimension, captured by the first principal component (which explains 43% of the variance in the data), does reveal significant differences between the "old" and "new" parts of the EU.
+
+```{r, echo=FALSE, message=FALSE}
+
+    macro_pca(year_select = 2014, k = 8, 
+              variables = c("GDP", "productivity", "cpi",
+               "unemployment_rate",  
+               "govt_debt"))$pca_plot  
+
+```
+
+### Conclusion
+
+Using biplots and dendrograms can reveal interesting patterns in variance and proximity between countries, using macroeconomic variables. The clustering exercises suggest EU countries are close to each other, perhaps with the exception of Luxembourg (due to its openness, wealth and small size), and Greece and Spain (due to their high unemployment and public debt). Overall, this clustering exercise can help us detect patterns in macroeconomic data across countries, and may help in formulating strategies for macroeconomic policy coordination.
