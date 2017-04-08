@@ -43,7 +43,6 @@ The user can select the years for which they wish to view the data (between 1995
 
 macro_pca <- function(year_select, k, variables){
   
-  setwd("/Users/davidrosenfeld/Documents/app_test/test_app")
   
   library(plyr)
   library(dplyr)
@@ -148,7 +147,7 @@ If we turn the clock back to 2004, the year 10 Central and Eastern European coun
 
 ```{r, echo=FALSE, message=FALSE}
 
-    macro_pca(year_select = 2014, k = 8, 
+    macro_pca(year_select = 2004, k = 5, 
               variables = c("GDP", "productivity", "cpi",
                "unemployment_rate",  
                "govt_debt"))$pca_plot  
