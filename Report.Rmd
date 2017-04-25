@@ -6,7 +6,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
+### Context
 
 Ever since the inception of the Euro, debates have raged about its design and membership. This debate has become even more prominent since the start of the financial crisis, which led to a debt crisis in the Eurozone. Critics of the Euro argue that a single monetary policy is unsuitable for its members who still have divergent macroeconomic conditions and cycles, insuficient labour mobility and fiscal integration. While some critics argue in favour of breaking up the monetary union, other have argued in favour of completing it with a stronger fiscal union.
 
@@ -35,7 +35,7 @@ This web app produces two outputs which should help the macroeconomic policy-mak
 * A biplot of European countries according to a range of macroeconomic variables. Additionally, countries are coloured according to clusters formed by hierarchical clustering.
 * A dendrogram which shows the hierarchical clustering of countries.
 
-The user can select the years for which they wish to view the data (between 1995 and 2014), the number of clusters they wish to create (between 1 and 8), and the variables they wish to take into account for the analysis. The data was extracted from the OECD website, standardised and imputed using the mean value for each year. Some EU countries are not included in OECD data.
+The user can select the years for which they wish to view the data (between 1995 and 2014), the number of clusters they wish to create (between 1 and 8), and the variables they wish to take into account for the analysis. The data was extracted from the OECD website, standardised and imputed using the mean cross-country value for each year.  Most data (apart from unemployment rate, GDP growth, productivity, cpi inflation and wages) are expressed as a percentage of GDP. Current account flows are the sum of current account credits and debits, while investment flows are the sum of investment account credits and debits. Note that some EU countries are not included in OECD data.
 
 ### What does this tell us about European economic integration?
 
@@ -43,6 +43,7 @@ The user can select the years for which they wish to view the data (between 1995
 
 macro_pca <- function(year_select, k, variables){
   
+  setwd(getwd())
   
   library(plyr)
   library(dplyr)
@@ -100,15 +101,10 @@ macro_pca <- function(year_select, k, variables){
   return(list(dendrogram = dendrogram, pca_plot = pca_plot))
 }
 
+
 ```
 
-If we consider the default variables selected in the app and 5 clusters for the year 2014, we notice that most EU countries are in the same cluster, appart from Luxembourg and Ireland. Norway is also in its own cluster, and so is Turkey. Looking at the biplot, it seems strange that Turkey is in a separate cluster considering it is towards the middle of the main "Euro" cluster, but it is worth noting that the biplot only explains about 51% of the variance in the data, so Turkey's distance may be explained by some dimensions which were not captured well by the first two Principal Components.
-
-In our biplot, the first principal component (horizontal axis) seems to capture variance in debt- and unemployment-related variables. It is particularly interesting to note that, unemployment rate and government debt are negatively correlated to government fiscal balance. As expected, Greece, Portugal and Spain have much higher than average unemployment and government debt, and high deficits.
-
-For those interested in international economics, it is worth noting that current account flows (the sume of current account credits and debits as a share of GDP, which measures economic openness) is almost orthogonal to the current account balance. At a time where protectionism seems like an increasingly attractive option by voters and politicians who complain about trade deficits, this biplot suggests they are in fact totally unrelated (as should be expected).
-
-Finally, we should notice that much of the reason for Luxembourg's status as an outlier is due to its openness (as measured by current account flows), which is unsurprising due to its size and its status as an important financial centre. More generally, one possible criticism of this biplot is that it includes some data which are in levels, or which change relatively slowly through time (such as GDP, government debt, average annual wage), as well as some rather more volatile data (such as government fiscal balance, GDP growth and current account flows). The latter are more unstable and cyclical, while the former are more stable and structural. In future analysis, it may be worth separating them out.
+If we consider the default variables selected in the app and 5 clusters for the year 2014, we notice that most EU countries are in the same cluster, appart from Luxembourg and Ireland, which are in their own clusters. Norway also has its own cluster, which, alongside Luxembourg, may be due to the volume of current account flows, high wages and strongly positive fiscal balance. Meanwhile the USA and China are in their own 'large-GDP' cluster. It is worth noting that the first two principal components only explain 47% of the variance altogether, which may explain some odd patterns.
 
 ```{r, echo=FALSE, message=FALSE}
 
@@ -120,7 +116,7 @@ Finally, we should notice that much of the reason for Luxembourg's status as an 
 
 ```
 
-For this reason, we redo this analysis keeping only some of the more stable variables, also for 2014 and with 5 clusters. This gives us a completely different picture, with Greece and Spain a separate high-debt, high-unemployment cluster, Turkey in its own cluster, and the creation of a "big EU countries" cluster containing Italy, France, the UK and Germany. Luxembourg is also in a separate "high productivity" cluster with Norway.
+For this reason, we redo this analysis keeping only some of the more stable variables, also for 2014 and with 5 clusters. This gives us a completely different picture, with Greece and Spain a separate high-debt, high-unemployment cluster. Many emerging economies appear clustered together due to their high inflation rate. Again, China and the USA are clustered together probably due to the large size of their GDP. Luxembourg and Norway are clustered together in a 'high productivity' cluster. Note that now the first two principal components explain 60% of the variance in the dataset and seems to provide a more coherent picture.
 
 
 ```{r, echo=FALSE, message=FALSE}
@@ -132,7 +128,7 @@ For this reason, we redo this analysis keeping only some of the more stable vari
 
 ```
 
-If we increase the number of clusters to 8, we see that Greece, Spain and Portugal split up in separate clusters (suggesting perhaps they are not as similar as they seem). The other development in this biplot is that the main cluster is split, with the creation of a new cluster formed mainly of Eastern European countries.
+If we increase the number of clusters to 8, we see that Greece and Spain split into separate clusters, while Portugal and Italy get put into a cluster of their own. The extra clusters do not seem to fundamentally change the picture, apart from another separate cluster for Japan.
 
 ```{r, echo=FALSE, message=FALSE}
 
@@ -143,17 +139,49 @@ If we increase the number of clusters to 8, we see that Greece, Spain and Portug
 
 ```
 
-If we turn the clock back to 2004, the year 10 Central and Eastern European countries joined the EU, we can see that while we still have a "big countries" cluster (which this time includes Spain), there seems to be less homogeneity between Western and Eastern EU countries than in 2014: in particular, the productivity/cpi inflation dimension, captured by the first principal component (which explains 43% of the variance in the data), does reveal significant differences between the "old" and "new" parts of the EU.
+We can change the variables we select to get a different picture, by keeping only inflation, current account balance, productivity, Gross Expenditure on Research and Development (GERD) and investment flows. 
+
+Here, beside the central cluster of countries, we notice two groups emerging in particular: high-inflation countries, split into two clusters. These countries also invest relatively little in R&D, have low productivity, and a negative current account balance in 2014. On the side, we find a cluster of countries with higher-than-average current account balances, high productivity and high R&D investment: these include Germany, Switzerland, the Netherlands, Sweden, Denmark, and Saudi Arabia (which is odd).
+
+Other notable patterns include the creation of a Luxembourg cluster due to its high level of openness (high investment flows relative to GDP). We also find Israel and South Korea in a separate cluster of high investors in Research and Development.
 
 ```{r, echo=FALSE, message=FALSE}
 
-    macro_pca(year_select = 2004, k = 5, 
+    macro_pca(year_select = 2014, k = 8, 
+              variables = c("cpi", "current_account_balance", "productivity",
+               "GERD",  
+               "investment_flows"))$pca_plot  
+
+```
+
+If we turn the clock back to 2008, the year the financial crisis start to hit Europe severely, we can see that the biggest difference with the previous plots is the creation of a cluster which includes Baltic countries alongside emerging economies such as Russia, South Africa and Chile. They mostly seem to be influenced by the 'cpi' axis, which may be due to the significant depreciations which ocurred in these countries following the bursting of a housing bubble. Italy, France and Germany are in a cluster, oddly enough with Greece (which, it is true, had not yet felt the heat of the crisis).
+
+```{r, echo=FALSE, message=FALSE}
+
+    macro_pca(year_select = 2008, k = 8, 
               variables = c("GDP", "productivity", "cpi",
                "unemployment_rate",  
                "govt_debt"))$pca_plot  
 
 ```
 
+Finally, turning the clock back to 1995, we can see most countries are squeezed together by the sheer size of the US economy (along the 'gdp' axis), and the high inflation rate in Russia.
+
+```{r, echo=FALSE, message=FALSE}
+
+    macro_pca(year_select = 1995, k = 8, 
+              variables = c("GDP", "productivity", "cpi",
+               "unemployment_rate",  
+               "govt_debt"))$pca_plot  
+
+```
+
+
+
+
 ### Conclusion
 
-Using biplots and dendrograms can reveal interesting patterns in variance and proximity between countries, using macroeconomic variables. The clustering exercises suggest EU countries are close to each other, perhaps with the exception of Luxembourg (due to its openness, wealth and small size), and Greece and Spain (due to their high unemployment and public debt). Overall, this clustering exercise can help us detect patterns in macroeconomic data across countries, and may help in formulating strategies for macroeconomic policy coordination.
+* Using biplots and dendrograms can reveal interesting patterns in variance and proximity between countries, using macroeconomic variables - although they sometimes provide unexpected results. 
+* The clustering exercises suggest EU countries are close to each other, perhaps with the exception of Luxembourg (due to its openness, wealth and small size), and Greece and Spain (due to their high unemployment and public debt). 
+* Despite its strive for leaving the European Union, the UK seems economically very well suited to coordinating its economic policies with other EU countries. 
+* Overall, this clustering exercise can help us detect patterns in macroeconomic data across countries, and may help in formulating strategies for macroeconomic policy coordination.
