@@ -12,7 +12,7 @@ library(markdown)
 library(DT)
 
 navbarPage("European economic integration: PCA and clustering",
-           tabPanel("Modeling",
+           tabPanel("Graphs",
                     sidebarLayout(
                       sidebarPanel(
                         sliderInput("year_select",
@@ -42,6 +42,11 @@ navbarPage("European economic integration: PCA and clustering",
                         plotOutput("pca_plot"),
                         plotOutput("dendrogram")
                       ))
+           ),
+           tabPanel("Map",
+                      mainPanel(
+                        plotOutput("map")
+                      )
            ),
            tags$head(tags$style(HTML('
                                      .irs-bar {

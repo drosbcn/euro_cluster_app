@@ -26,4 +26,11 @@ shinyServer(function(input, output) {
               variables = input$variables)$dendrogram     
   })
   
+  output$map <- renderPlot({
+    
+    macro_pca <- source("macro_convergence.R")
+    macro_pca(year_select = input$year_select, k = input$k, 
+              variables = input$variables)$map     
+  })
+  
 })
